@@ -21,7 +21,7 @@ This is a simple resume search application built using Flask, FAISS, and other P
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/resume-search.git
+   git clone [https://github.com/Ragu2606/Resume-Search-App]
 2. Navigate to the project folder:
    cd resume-search
 3. Create and activate a virtual environment:
