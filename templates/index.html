@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input, button { margin: 10px; padding: 10px; }
+        .result { border: 1px solid #ccc; padding: 10px; margin: 10px auto; width: 60%; }
+        iframe { width: 80%; height: 600px; margin-top: 20px; border: none; }
+    </style>
+</head>
+<body>
+    <h1>Resume Search</h1>
+    <form id="search-form">
+        <input type="text" id="query" placeholder="Enter search term..." required>
+        <button type="submit">Search</button>
+    </form>
+    <div id="results"></div>
+    <br>
+    <a href="{{ url_for('logout') }}">Logout</a>
+
+    <script>
+        document.getElementById('search-form').onsubmit = async function(event) {
+            event.preventDefault();
+            const query = document.getElementById('query').value;
+            const response = await fetch("/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query })
+            });
+            const results = await response.json();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = "";  // Clear previous results
+
+            results.forEach(res => {
+                resultsDiv.innerHTML += `
+                    <div class="result">
+                        <h3>${res.file}</h3>
+                        <p><strong>Match Score:</strong> ${res.match_score}%</p>
+                        <p>${res.summary}</p>
+                        <button onclick="showResume('${res.link}')">View Resume</button>
+                    </div>
+                `;
+            });
+        };
+
+        function showResume(pdfLink) {
+            const iframe = document.createElement('iframe');
+            iframe.src = "/resumes/" + pdfLink;  // This now links to the Flask server that serves the PDF
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';  // Clear previous search results
+            resultsDiv.appendChild(iframe);  // Display the PDF in an iframe
+        }
+    </script>
+</body>
+</html>
