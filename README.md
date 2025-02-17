@@ -23,7 +23,7 @@ This is a simple resume search application built using Flask, FAISS, and other P
    ```bash
    git clone [https://github.com/Ragu2606/Resume-Search-App]
 2. Navigate to the project folder:
-   cd resume-search
+   cd resume-search-app
 3. Create and activate a virtual environment:
     For Windows
    python -m venv venv
