@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import logging
 import fitz
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 
 app = Flask(__name__)
 
@@ -15,7 +16,7 @@ class Config:
     MAX_PAGES = 3
     LOG_FILE = "app.log"
     SCORE_THRESHOLD = 0.1
-    TOGETHER_AI_API_KEY = "Replace this with your API key"  
+    TOGETHER_AI_API_KEY = "674e9304469f2529653a625df5fbdb2b7ff7380292c856b5e4f607fe572554a5"  # Replace this with your API key
     TOGETHER_AI_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
 
 # Setup logging (logs to both file and console)
@@ -34,6 +35,7 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+@lru_cache(maxsize=100)
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF file."""
     logger.info(f"Processing: {pdf_path}")
@@ -42,9 +44,7 @@ def extract_text_from_pdf(pdf_path):
         if doc.page_count > Config.MAX_PAGES:
             logger.warning(f"Skipping {pdf_path}: Exceeds {Config.MAX_PAGES} pages")
             return None
-        text = ""
-        for page in doc:
-            text += page.get_text() or ""
+        text = "".join(page.get_text() or "" for page in doc)
         logger.info(f"Extracted text from: {pdf_path}")
         return text
     except Exception as e:
@@ -54,7 +54,7 @@ def extract_text_from_pdf(pdf_path):
 def generate_summary(text, query):
     """Generate a summary using Together AI API."""
     logger.info(f"Generating summary for query: {query}")
-    headers = {"Authorization": f"Bearer {Config.TOGETHER_AI_API_KEY}"}
+    headers = {"Authorization": f"Bearer {Config.TOGETHER_AI_API_KEY}", "Content-Type": "application/json"}
     data = {
         "model": Config.TOGETHER_AI_MODEL,
         "messages": [
@@ -63,11 +63,11 @@ def generate_summary(text, query):
         ],
         "max_tokens": 150
     }
-
+    
     try:
         response = requests.post("https://api.together.xyz/v1/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        summary = response.json()["choices"][0]["message"]["content"]
+        summary = response.json().get("choices", [{}])[0].get("message", {}).get("content", "Summary not available.")
         logger.info(f"Summary generated successfully for query: {query}")
         return summary
     except Exception as e:
@@ -98,12 +98,12 @@ def search():
         for future in futures:
             filename = futures[future]
             text = future.result()
-            if text:
+            if text and filename not in resume_data:
                 resume_data[filename] = text
 
     if not resume_data:
         logger.warning("No resumes found or extracted")
-        return jsonify({"results": []})
+        return jsonify({"results": []})  # ✅ Return empty JSON array instead of rendering HTML
 
     logger.info("Vectorizing resumes and searching for matches...")
     vectorizer = TfidfVectorizer(stop_words="english")
@@ -113,11 +113,13 @@ def search():
     scores = cosine_similarity(query_vector, doc_vectors)[0]
 
     results = []
+    seen_resumes = set()
     for idx, (filename, text) in enumerate(resume_data.items()):
         score = scores[idx]
         logger.info(f"Score for {filename}: {score:.2f}")
 
-        if score > Config.SCORE_THRESHOLD:
+        if score > Config.SCORE_THRESHOLD and filename not in seen_resumes:
+            seen_resumes.add(filename)
             summary = generate_summary(text, query)
             results.append({
                 "filename": filename,
@@ -128,7 +130,9 @@ def search():
 
     results.sort(key=lambda x: x["score"], reverse=True)
     logger.info(f"Returning {len(results)} matching results.")
-    return jsonify({"results": results})
+
+    return jsonify({"results": results})  # ✅ Always return JSON
+
 
 @app.route("/view/<filename>", methods=["GET"])
 def view_resume(filename):
@@ -144,3 +148,4 @@ if __name__ == "__main__":
     os.makedirs(Config.RESUME_DIR, exist_ok=True)
     logger.info("Starting Flask server...")
     app.run(host="0.0.0.0", port=5000, threaded=True, debug=True)
+
