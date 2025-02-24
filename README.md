@@ -1,53 +1,104 @@
-# Resume Search Application
+# Flask Resume Search Application
 
-This is a simple resume search application built using Flask, FAISS, and other Python libraries. The app allows users to search through a set of resumes (in PDF format) and view detailed information about the resumes that match their search query.
+## Overview
+This is a Flask-based Resume Search Application that allows users to search for resumes based on a given query. The application extracts text from PDF resumes, applies TF-IDF vectorization for similarity search, and generates concise summaries using the Together AI API.
 
 ## Features
+- Extracts text from PDF resumes (limited to 3 pages).
+- Uses TF-IDF and cosine similarity to match resumes against user queries.
+- Integrates Together AI for summarizing resumes.
+- Displays matched resumes with relevance scores.
+- Provides a PDF viewing option for selected resumes.
+- Logs search activity and processing details.
 
-- **User Authentication**: Secure login to access the resume search.
-- **Resume Search**: Search resumes based on keywords. The search is enhanced by both semantic and keyword-based matching.
-- **PDF Viewer**: View resumes directly in the browser using an embedded PDF viewer.
-- **Summarization**: Each resume is automatically summarized to provide a brief overview.
-
-## Technologies Used
-
-- **Flask**: A Python web framework for building the app.
-- **PyMuPDF**: For extracting text from PDF files.
-- **Sentence Transformers**: For converting text into embeddings and performing semantic search.
-- **FAISS**: For efficient similarity search and clustering of resume embeddings.
-- **Hugging Face Transformers**: For text summarization.
+## Prerequisites
+Before running the application, ensure you have:
+- Python 3.7+
+- Flask
+- Required Python libraries (see Installation section)
+- Together AI API Key
 
 ## Installation
 
-1. Clone this repository:
-   ```bash
-   git clone [https://github.com/Ragu2606/Resume-Search-App]
-2. Navigate to the project folder:
-   cd resume-search-app
-3. Create and activate a virtual environment:
-    For Windows
-   python -m venv venv
-   venv\Scripts\activate
-4. Install required dependencies:
-   pip install -r requirements.txt
-   
+### 1. Clone the Repository
+```sh
+ git clone https://github.com/yourusername/flask-resume-search.git
+ cd flask-resume-search
+```
+
+### 2. Install Dependencies
+Create a virtual environment (optional but recommended):
+```sh
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
+
+Install required libraries:
+```sh
+pip install -r requirements.txt
+```
+
+### 3. Configure API Key
+Replace `TOGETHER_AI_API_KEY` in `app.py` with your valid API key from [Together AI](https://together.ai/).
+
+### 4. Create Resumes Directory
+```sh
+mkdir resumes
+```
+Place PDF resumes in the `resumes/` folder.
+
 ## Running the Application
-  To start the Flask app, run the following command:
-  python app.py
-  This will start the Flask development server, typically at http://127.0.0.1:5000/. Open this URL in your browser to use      the application.
+```sh
+python app.py
+```
+The app runs on `http://127.0.0.1:5000/` by default.
 
-## How It Works
-    Login: You must log in to access the resume search functionality. The default credentials are:
+## API Endpoints
 
-    Username: admin
-    Password: password123
-    Search: Enter a keyword in the search bar to find resumes that match your query. The app combines keyword matching with      semantic matching using sentence embeddings.
+### 1. Home Page
+- **Endpoint:** `/`
+- **Method:** GET
+- **Description:** Renders the search page.
 
-    View Resume: Click the "View Resume" button to open the resume directly in the browser.
-## Output
-    When a search is performed, the app returns a list of resumes that match the query. Each search result includes:
+### 2. Search Resumes
+- **Endpoint:** `/search`
+- **Method:** POST
+- **Parameters:** `query` (search term)
+- **Response:** JSON containing matched resumes with scores and summaries.
 
-    File Name: The name of the resume file (e.g., John_Doe_Resume.pdf).
-    Match Score: A percentage that indicates how closely the resume matches the search query. This score is calculated using     a combination of semantic search and keyword matching.
-    Summary: A brief summary of the resume, generated using the Hugging Face summarization pipeline.
-    View Resume Button: A button that allows users to view the full resume in an embedded PDF viewer.
+### 3. View Resume
+- **Endpoint:** `/view/<filename>`
+- **Method:** GET
+- **Description:** Serves a PDF resume.
+
+## Deployment
+### Deploy on AWS EC2
+1. Launch an EC2 instance (Ubuntu recommended).
+2. Install Python, Flask, and dependencies.
+3. Configure API key and upload resumes.
+4. Run the app with:
+```sh
+python app.py
+```
+5. Set up an Nginx reverse proxy for production use.
+
+### Deploy on Docker
+1. Build the Docker image:
+```sh
+docker build -t flask-resume-app .
+```
+2. Run the container:
+```sh
+docker run -p 5000:5000 flask-resume-app
+```
+
+## Logging
+- Logs are stored in `app.log`.
+- Logs include search queries, resume processing status, and API errors.
+
+## Contributing
+Pull requests are welcome! Feel free to improve search accuracy, enhance the UI, or integrate additional AI models.
+
+## License
+This project is open-source under the MIT License.
+
