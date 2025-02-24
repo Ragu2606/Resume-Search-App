@@ -5,54 +5,140 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Search</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        input, button { margin: 10px; padding: 10px; }
-        .result { border: 1px solid #ccc; padding: 10px; margin: 10px auto; width: 60%; }
-        iframe { width: 80%; height: 600px; margin-top: 20px; border: none; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #searchForm {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            width: 90%;
+            max-width: 500px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #results {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .result {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            margin: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: left;
+            transition: transform 0.3s;
+        }
+
+        .result:hover {
+            transform: translateY(-5px);
+        }
+
+        .result h3 {
+            color: #333;
+            margin: 0;
+        }
+
+        .preview {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 5px;
+        }
+
+        a button {
+            width: 100%;
+            margin-top: 10px;
+            background: #28a745;
+        }
+
+        a button:hover {
+            background: #218838;
+        }
     </style>
 </head>
 <body>
     <h1>Resume Search</h1>
-    <form id="search-form">
-        <input type="text" id="query" placeholder="Enter search term..." required>
+    <form id="searchForm">
+        <input type="text" name="query" placeholder="Enter search query (e.g., skills and experience)">
         <button type="submit">Search</button>
     </form>
+
     <div id="results"></div>
-    <br>
-    <a href="{{ url_for('logout') }}">Logout</a>
 
     <script>
-        document.getElementById('search-form').onsubmit = async function(event) {
-            event.preventDefault();
-            const query = document.getElementById('query').value;
-            const response = await fetch("/search", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query })
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/search', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    return;
+                }
+                data.results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = 'result';
+                    div.innerHTML = `
+                        <h3>${result.filename} (Score: ${result.score}%)</h3>
+                        <p>${result.summary}</p>
+                        <p class="preview">Preview: ${result.preview}</p>
+                        <a href="/view/${result.filename}" target="_blank">
+                            <button>View Resume</button>
+                        </a>
+                    `;
+                    resultsDiv.appendChild(div);
+                });
+            })
+            .catch(error => {
+                document.getElementById('results').innerHTML = `<p style="color: red;">Fetch error: ${error}</p>`;
             });
-            const results = await response.json();
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = "";  // Clear previous results
-
-            results.forEach(res => {
-                resultsDiv.innerHTML += `
-                    <div class="result">
-                        <h3>${res.file}</h3>
-                        <p><strong>Match Score:</strong> ${res.match_score}%</p>
-                        <p>${res.summary}</p>
-                        <button onclick="showResume('${res.link}')">View Resume</button>
-                    </div>
-                `;
-            });
-        };
-
-        function showResume(pdfLink) {
-            const iframe = document.createElement('iframe');
-            iframe.src = "/resumes/" + pdfLink;  // This now links to the Flask server that serves the PDF
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '';  // Clear previous search results
-            resultsDiv.appendChild(iframe);  // Display the PDF in an iframe
-        }
+        });
     </script>
 </body>
 </html>
