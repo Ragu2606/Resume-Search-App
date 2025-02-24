@@ -108,6 +108,9 @@
     <script>
         document.getElementById('searchForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Searching for resumes...</p>';
+            
             const formData = new FormData(this);
             fetch('/search', {
                 method: 'POST',
@@ -115,10 +118,13 @@
             })
             .then(response => response.json())
             .then(data => {
-                const resultsDiv = document.getElementById('results');
                 resultsDiv.innerHTML = '';
                 if (data.error) {
                     resultsDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    return;
+                }
+                if (data.results.length === 0) {
+                    resultsDiv.innerHTML = '<p>No matching resumes found.</p>';
                     return;
                 }
                 data.results.forEach(result => {
@@ -136,7 +142,7 @@
                 });
             })
             .catch(error => {
-                document.getElementById('results').innerHTML = `<p style="color: red;">Fetch error: ${error}</p>`;
+                resultsDiv.innerHTML = `<p style="color: red;">Fetch error: ${error}</p>`;
             });
         });
     </script>
