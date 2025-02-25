@@ -16,10 +16,10 @@ class Config:
     MAX_PAGES = 3
     LOG_FILE = "app.log"
     SCORE_THRESHOLD = 0.1
-    TOGETHER_AI_API_KEY = "674e9304469f2529653a625df5fbdb2b7ff7380292c856b5e4f607fe572554a5"  # Replace this with your API key
+    TOGETHER_AI_API_KEY = "Replace with your API key"
     TOGETHER_AI_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
 
-# Setup logging (logs to both file and console)
+# Setup logging
 logging.basicConfig(
     filename=Config.LOG_FILE,
     level=logging.INFO,
@@ -28,7 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Also log to the console
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -51,8 +50,9 @@ def extract_text_from_pdf(pdf_path):
         logger.error(f"Error processing {pdf_path}: {str(e)}")
         return None
 
-def generate_summary(text, query):
-    """Generate a summary using Together AI API."""
+@lru_cache(maxsize=500)
+def generate_summary_cached(text, query):
+    """Generate a summary using Together AI API and cache results."""
     logger.info(f"Generating summary for query: {query}")
     headers = {"Authorization": f"Bearer {Config.TOGETHER_AI_API_KEY}", "Content-Type": "application/json"}
     data = {
@@ -120,7 +120,7 @@ def search():
 
         if score > Config.SCORE_THRESHOLD and filename not in seen_resumes:
             seen_resumes.add(filename)
-            summary = generate_summary(text, query)
+            summary = generate_summary_cached(text, query)  # ✅ Cached summary
             results.append({
                 "filename": filename,
                 "score": round(score * 100, 2),
@@ -132,7 +132,6 @@ def search():
     logger.info(f"Returning {len(results)} matching results.")
 
     return jsonify({"results": results})  # ✅ Always return JSON
-
 
 @app.route("/view/<filename>", methods=["GET"])
 def view_resume(filename):
@@ -148,4 +147,3 @@ if __name__ == "__main__":
     os.makedirs(Config.RESUME_DIR, exist_ok=True)
     logger.info("Starting Flask server...")
     app.run(host="0.0.0.0", port=5000, threaded=True, debug=True)
-
